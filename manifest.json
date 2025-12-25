@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "Edge.AI Web Research Assistant",
+  "version": "1.0.0",
+  "description": "Automated web research assistant for Edge.AI - performs searches and extracts content for RAG",
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    }
+  },
+  "permissions": [
+    "tabs",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://*.wikipedia.org/*",
+    "https://lite.duckduckgo.com/*",
+    "https://duckduckgo.com/*",
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "externally_connectable": {
+    "matches": [
+      "http://localhost:*/*",
+      "https://localhost:*/*",
+      "http://127.0.0.1:*/*",
+      "https://127.0.0.1:*/*",
+      "httsp://edge.inled.es/"
+    ]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["content.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
