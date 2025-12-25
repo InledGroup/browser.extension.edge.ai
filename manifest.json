@@ -39,7 +39,7 @@
       "https://localhost:*/*",
       "http://127.0.0.1:*/*",
       "https://127.0.0.1:*/*",
-      "httsp://edge.inled.es/"
+      "https://edge.inled.es/"
     ]
   },
   "web_accessible_resources": [
