@@ -12,7 +12,8 @@
 const ALLOWED_ORIGINS = [
   'https://edge.inled.es',
   'http://localhost:4321',
-  'https://localhost:4321'
+  'https://localhost:4321',
+  'https://hosted.inled.es'
 ];
 
 let permissionMode = 'ask'; // 'ask' or 'permissive'
@@ -78,6 +79,14 @@ window.addEventListener('message', async (event) => {
 
     case 'SEARCH_REQUEST':
       handleSearchRequest(message.data);
+      break;
+
+    case 'SEARCH_ONLY_REQUEST':
+      handleSearchOnlyRequest(message.data);
+      break;
+
+    case 'EXTRACT_URLS_REQUEST':
+      handleExtractUrlsRequest(message.data);
       break;
   }
 });
@@ -202,6 +211,124 @@ async function handleSearchRequest(data) {
       data: {
         requestId,
         error: errorMessage
+      }
+    }, '*');
+  }
+}
+
+/**
+ * Handle search only request (no confirmation needed usually as it doesn't open tabs)
+ */
+async function handleSearchOnlyRequest(data) {
+  const { requestId, query } = data;
+  console.log('[EdgeAI Content] 🔍 Search ONLY request:', query);
+
+  try {
+    chrome.runtime.sendMessage({
+      type: 'SEARCH_ONLY',
+      query,
+      requestId
+    }, (response) => {
+      // Check for lastError (async errors)
+      if (chrome.runtime.lastError) {
+        console.error('[EdgeAI Content] Search error:', chrome.runtime.lastError);
+        window.postMessage({
+          source: 'edgeai-extension',
+          type: 'SEARCH_ERROR',
+          data: {
+            requestId,
+            error: chrome.runtime.lastError.message
+          }
+        }, '*');
+        return;
+      }
+
+      if (response && response.success) {
+        window.postMessage({
+          source: 'edgeai-extension',
+          type: 'SEARCH_RESPONSE',
+          data: {
+            requestId,
+            results: response.results
+          }
+        }, '*');
+      } else {
+        window.postMessage({
+          source: 'edgeai-extension',
+          type: 'SEARCH_ERROR',
+          data: { requestId, error: response?.error || 'Search failed' }
+        }, '*');
+      }
+    });
+  } catch (error) {
+    // Catch synchronous errors (like Context Invalidated)
+    console.error('[EdgeAI Content] Search request error:', error);
+    const isInvalidated = error.message && error.message.includes('Extension context invalidated');
+    
+    window.postMessage({
+      source: 'edgeai-extension',
+      type: 'SEARCH_ERROR',
+      data: {
+        requestId,
+        error: isInvalidated ? 'Extension was reloaded. Please refresh the page.' : error.message
+      }
+    }, '*');
+  }
+}
+
+/**
+ * Handle extraction request (needs permission if strict)
+ */
+async function handleExtractUrlsRequest(data) {
+  const { requestId, urls } = data;
+  console.log('[EdgeAI Content] 📄 Extract URLs request:', urls.length);
+
+  try {
+    chrome.runtime.sendMessage({
+      type: 'EXTRACT_URLS',
+      urls,
+      requestId
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('[EdgeAI Content] Extraction error:', chrome.runtime.lastError);
+        window.postMessage({
+          source: 'edgeai-extension',
+          type: 'SEARCH_ERROR',
+          data: {
+            requestId,
+            error: chrome.runtime.lastError.message
+          }
+        }, '*');
+        return;
+      }
+
+      if (response && response.success) {
+        window.postMessage({
+          source: 'edgeai-extension',
+          type: 'SEARCH_RESPONSE',
+          data: {
+            requestId,
+            results: response.results.sources
+          }
+        }, '*');
+      } else {
+        window.postMessage({
+          source: 'edgeai-extension',
+          type: 'SEARCH_ERROR',
+          data: { requestId, error: response?.error || 'Extraction failed' }
+        }, '*');
+      }
+    });
+  } catch (error) {
+    console.error('[EdgeAI Content] Extraction request error:', error);
+    const isInvalidated = error.message && error.message.includes('Extension context invalidated');
+
+    window.postMessage({
+      source: 'edgeai-extension',
+      type: 'SEARCH_ERROR',
+      data: {
+        requestId,
+        error: isInvalidated ? 'Extension was reloaded. Please refresh the page.' : error.message
       }
     }, '*');
   }

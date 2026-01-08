@@ -17,6 +17,16 @@ chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => 
     handleSearchRequest(request.query, request.searchId).then(sendResponse);
     return true; // Keep channel open for async response
   }
+
+  if (request.type === 'SEARCH_ONLY') {
+    handleSearchOnly(request.query, request.searchId).then(sendResponse);
+    return true;
+  }
+
+  if (request.type === 'EXTRACT_URLS') {
+    handleExtractionRequest(request.urls, request.searchId).then(sendResponse);
+    return true;
+  }
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -28,8 +38,95 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.type === 'SEARCH_AND_EXTRACT') {
     handleSearchRequest(request.query, request.requestId).then(sendResponse);
     return true; // Keep channel open for async response
+  } else if (request.type === 'SEARCH_ONLY') {
+    handleSearchOnly(request.query, request.requestId).then(sendResponse);
+    return true;
+  } else if (request.type === 'EXTRACT_URLS') {
+    handleExtractionRequest(request.urls, request.requestId).then(sendResponse);
+    return true;
   }
 });
+
+/**
+ * Search only (no extraction)
+ */
+async function handleSearchOnly(query, searchId) {
+  try {
+    console.log(`[EdgeAI] Starting search ONLY for: "${query}" (ID: ${searchId})`);
+
+    // Perform searches in parallel
+    const [wikipediaUrls, duckduckgoUrls] = await Promise.all([
+      searchWikipedia(query),
+      searchDuckDuckGo(query)
+    ]);
+
+    // Combine and deduplicate URLs
+    const allUrls = [...new Set([...wikipediaUrls, ...duckduckgoUrls])];
+    
+    // Create basic search results format
+    const results = allUrls.map(url => ({
+      title: url, // Title might not be available yet
+      url: url,
+      snippet: 'Source found via web search',
+      source: url.includes('wikipedia') ? 'wikipedia' : 'duckduckgo'
+    }));
+
+    return {
+      success: true,
+      searchId,
+      resultCount: results.length,
+      results: results
+    };
+
+  } catch (error) {
+    console.error('[EdgeAI] Search error:', error);
+    return {
+      success: false,
+      searchId,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Extract content from specific URLs
+ */
+async function handleExtractionRequest(urls, searchId) {
+  try {
+    console.log(`[EdgeAI] Starting extraction for ${urls.length} URLs (ID: ${searchId})`);
+
+    const extractionPromises = urls.map(url =>
+      openAndExtractContent(url, searchId)
+    );
+
+    const results = await Promise.allSettled(extractionPromises);
+    const sources = [];
+
+    // Process results
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled' && result.value) {
+        sources.push(result.value);
+      } else {
+        console.warn(`[EdgeAI] Failed to extract from ${urls[index]}:`, result.reason);
+      }
+    });
+
+    return {
+      success: true,
+      searchId,
+      resultCount: sources.length,
+      results: { sources } // Match expected format for getStoredResults
+    };
+
+  } catch (error) {
+    console.error('[EdgeAI] Extraction error:', error);
+    return {
+      success: false,
+      searchId,
+      error: error.message
+    };
+  }
+}
 
 /**
  * Main search handler - performs searches and opens pages in background
@@ -314,5 +411,88 @@ setInterval(async () => {
     }
   });
 }, 5 * 60 * 1000); // Run every 5 minutes
+
+// ============================================================================
+// UPDATE CHECKER
+// ============================================================================
+
+const UPDATE_API_URL = 'https://extupdater.inled.es/api/updates.json';
+const UPDATE_CHECK_INTERVAL = 100000; // 100 seconds
+const EXTENSION_ID_MATCH = 'edgeai-v2'; // Keyword to match in update ID
+let lastNotifiedUpdateId = null;
+
+async function checkForUpdates() {
+  try {
+    console.log('[EdgeAI Updater] Checking for updates...');
+    
+    const response = await fetch(UPDATE_API_URL);
+    if (!response.ok) {
+      console.warn('[EdgeAI Updater] API response not OK:', response.status);
+      return;
+    }
+
+    const updates = await response.json();
+    console.log('[EdgeAI Updater] Updates received:', updates);
+    
+    // Find matching update
+    // Format: [{ "id": "edgeai-v1.2", "url": "..." }]
+    const match = updates.find(update => 
+      update.id && update.id.toLowerCase().includes(EXTENSION_ID_MATCH)
+    );
+
+    if (match) {
+      console.log('[EdgeAI Updater] Found matching update:', match);
+
+      // Check if we already notified about this specific version ID
+      // DEBUG: Removing check to force notification for testing
+      // if (match.id !== lastNotifiedUpdateId) {
+        console.log('[EdgeAI Updater] 🚀 New update found:', match.id);
+        
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'icon.png',
+          title: 'Edge.AI Update Available',
+          message: `A new version is available: ${match.id}. Click to download.`,
+          priority: 2,
+          requireInteraction: true
+        }, (notificationId) => {
+          if (chrome.runtime.lastError) {
+            console.error('[EdgeAI Updater] Notification error:', chrome.runtime.lastError);
+          } else {
+            console.log('[EdgeAI Updater] Notification created ID:', notificationId);
+          }
+        });
+
+        // Update state to avoid spamming (Re-enable this later)
+        lastNotifiedUpdateId = match.id;
+        
+        // Save URL to storage for popup or click handler
+        chrome.storage.local.set({ 
+          pendingUpdate: {
+            id: match.id,
+            url: match.url,
+            detectedAt: Date.now()
+          }
+        });
+      // }
+    } else {
+      console.log('[EdgeAI Updater] No matching updates found.');
+    }
+  } catch (error) {
+    console.error('[EdgeAI Updater] Check failed:', error);
+  }
+}
+
+// Handle notification click
+chrome.notifications.onClicked.addListener(async () => {
+  const data = await chrome.storage.local.get(['pendingUpdate']);
+  if (data.pendingUpdate && data.pendingUpdate.url) {
+    chrome.tabs.create({ url: data.pendingUpdate.url });
+  }
+});
+
+// Start checking
+setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL);
+checkForUpdates(); // Initial check
 
 console.log('[EdgeAI] Background service worker initialized');
