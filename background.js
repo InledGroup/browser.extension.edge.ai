@@ -417,7 +417,7 @@ setInterval(async () => {
 // ============================================================================
 
 const UPDATE_API_URL = 'https://extupdater.inled.es/api/updates.json';
-const UPDATE_CHECK_INTERVAL = 100000; // 100 seconds
+const UPDATE_CHECK_INTERVAL = 600000; // 600 seconds
 const EXTENSION_ID_MATCH = 'edgeai-v2'; // Keyword to match in update ID
 let lastNotifiedUpdateId = null;
 

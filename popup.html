@@ -159,37 +159,73 @@
       opacity: 1;
       transform: translate(-50%, -50%) scale(1);
     }
+
+    .language-selector {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 100;
+    }
+
+    #languageSelect {
+      background: #3f3f3f;
+      color: #ececec;
+      border: 1px solid #4a4a4a;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      padding-right: 24px;
+      background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ececec%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px top 50%;
+      background-size: 8px auto;
+    }
+    
+    #languageSelect:hover {
+      background-color: #4a4a4a;
+      border-color: #28e518;
+    }
   </style>
 </head>
 <body>
   <div class="header">
+    <div class="language-selector">
+      <select id="languageSelect">
+        <option value="en">🇺🇸 EN</option>
+        <option value="es">🇪🇸 ES</option>
+      </select>
+    </div>
     <div class="logo"><img src="https://hosted.inled.es/inledai.png" alt="Edge.AI" width="48" height="auto"></div>
     <h1>Edge.AI</h1>
-    <div class="version">Browser Extension</div>
+    <div class="version" data-i18n="subtitle">Browser Extension</div>
   </div>
 
   <div class="section">
     <div class="section-title">
       <span>⚡</span>
-      <span>Estado</span>
+      <span data-i18n="statusTitle">Estado</span>
     </div>
     <div class="status">
       <div class="status-dot"></div>
-      <span>Extensión activa</span>
+      <span data-i18n="statusActive">Extensión activa</span>
     </div>
   </div>
 
   <div class="section">
     <div class="section-title">
       <span>🔐</span>
-      <span>Modo de Permisos</span>
+      <span data-i18n="permissionsTitle">Modo de Permisos</span>
     </div>
     <div class="radio-group">
       <label class="radio-option">
         <input type="radio" name="permissionMode" value="ask" checked>
         <div class="radio-label">
-          <div class="radio-title">🤔 Preguntar (Recomendado)</div>
-          <div class="radio-description">
+          <div class="radio-title" data-i18n="askModeTitle">🤔 Preguntar (Recomendado)</div>
+          <div class="radio-description" data-i18n="askModeDesc">
             Se pedirá confirmación antes de cada búsqueda web
           </div>
         </div>
@@ -198,8 +234,8 @@
       <label class="radio-option">
         <input type="radio" name="permissionMode" value="permissive">
         <div class="radio-label">
-          <div class="radio-title">✅ Permisivo</div>
-          <div class="radio-description">
+          <div class="radio-title" data-i18n="permissiveModeTitle">✅ Permisivo</div>
+          <div class="radio-description" data-i18n="permissiveModeDesc">
             Permite todas las búsquedas automáticamente sin preguntar
           </div>
         </div>
@@ -207,7 +243,7 @@
     </div>
   </div>
 
-  <div id="savedMessage" class="saved-message">
+  <div id="savedMessage" class="saved-message" data-i18n="savedMessage">
     ✓ Configuración guardada
   </div>
 
