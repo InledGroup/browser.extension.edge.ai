@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Edge.AI Web Research Assistant",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Automated web research assistant for Edge.AI - performs searches and extracts content for RAG",
   "action": {
     "default_popup": "popup.html",
