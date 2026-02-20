@@ -189,6 +189,50 @@
       background-color: #4a4a4a;
       border-color: #28e518;
     }
+
+    .update-btn {
+      width: 100%;
+      padding: 10px;
+      background: #28e518;
+      color: #000000;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 8px;
+    }
+
+    .update-btn:hover {
+      background: #20b813;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(40, 229, 24, 0.3);
+    }
+
+    .update-btn:active {
+      transform: translateY(0);
+    }
+
+    .update-btn:disabled {
+      background: #3f3f3f;
+      color: #888;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .update-status {
+      font-size: 11px;
+      text-align: center;
+      min-height: 16px;
+      opacity: 0.8;
+    }
+
+    .update-status.found {
+      color: #28e518;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -245,6 +289,19 @@
 
   <div id="savedMessage" class="saved-message" data-i18n="savedMessage">
     ✓ Configuración guardada
+  </div>
+
+  <div class="section">
+    <div class="section-title">
+      <span>🚀</span>
+      <span data-i18n="updatesTitle">Actualizaciones</span>
+    </div>
+    <button id="checkUpdatesBtn" class="update-btn" data-i18n="checkUpdatesBtn">Buscar actualizaciones</button>
+    <div id="updateStatus" class="update-status"></div>
+    <div id="downloadContainer" style="display: none; margin-top: 12px; border-top: 1px solid #3f3f3f; padding-top: 12px;">
+      <p style="font-size: 11px; margin-bottom: 8px; color: #28e518; font-weight: 600;" data-i18n="updateAvailableText">Nueva versión o parche detectado:</p>
+      <button id="downloadUpdateBtn" class="update-btn" style="background: #28e518; color: #000; box-shadow: 0 0 15px rgba(40, 229, 24, 0.4);" >Descargar Parche</button>
+    </div>
   </div>
 
   <script src="popup.js"></script>

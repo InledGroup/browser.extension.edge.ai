@@ -13,7 +13,9 @@ const ALLOWED_ORIGINS = [
   'https://edge.inled.es',
   'http://localhost:4321',
   'https://localhost:4321',
-  'https://hosted.inled.es'
+  'https://hosted.inled.es',
+  'http://192.168.',
+  'https://192.168.'
 ];
 
 let permissionMode = 'ask'; // 'ask' or 'permissive'
@@ -264,7 +266,7 @@ async function handleSearchOnlyRequest(data) {
     // Catch synchronous errors (like Context Invalidated)
     console.error('[EdgeAI Content] Search request error:', error);
     const isInvalidated = error.message && error.message.includes('Extension context invalidated');
-    
+
     window.postMessage({
       source: 'edgeai-extension',
       type: 'SEARCH_ERROR',
@@ -455,7 +457,7 @@ function extractTextFromElement(element) {
     element,
     NodeFilter.SHOW_TEXT,
     {
-      acceptNode: function(node) {
+      acceptNode: function (node) {
         const parent = node.parentElement;
         if (!parent) return NodeFilter.FILTER_REJECT;
 
@@ -513,6 +515,9 @@ function countWords(text) {
  * Send extracted content to background script
  */
 function sendToBackground(data) {
+  if (!data || !data.content) return;
+  
+  console.log(`[EdgeAI Content] 📤 Sending ${data.wordCount} words to background...`);
   chrome.runtime.sendMessage({
     type: 'CONTENT_EXTRACTED',
     data: data
@@ -524,18 +529,26 @@ checkIfWebApp();
 
 // Auto-extract if not on webapp
 if (!isWebApp) {
+  // Extract as soon as possible, then again when DOM is fully ready
+  const performExtraction = () => {
+    const extracted = extractPageContent();
+    if (extracted.content.length > 100) {
+      sendToBackground(extracted);
+      return true;
+    }
+    return false;
+  };
+
+  // Try after 500ms
+  setTimeout(performExtraction, 500);
+  
+  // Try when loaded
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => {
-        const extracted = extractPageContent();
-        sendToBackground(extracted);
-      }, 1000);
+      setTimeout(performExtraction, 1000);
     });
   } else {
-    setTimeout(() => {
-      const extracted = extractPageContent();
-      sendToBackground(extracted);
-    }, 1000);
+    setTimeout(performExtraction, 1500);
   }
 }
 
@@ -544,7 +557,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'EXTRACT_NOW') {
     const extracted = extractPageContent();
     sendResponse(extracted);
-    return true;
+    return false;
   }
 
   if (request.type === 'PERMISSION_MODE_CHANGED') {
