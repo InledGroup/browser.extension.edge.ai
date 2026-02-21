@@ -90,8 +90,49 @@ window.addEventListener('message', async (event) => {
     case 'EXTRACT_URLS_REQUEST':
       handleExtractUrlsRequest(message.data);
       break;
+
+    case 'FETCH_REQUEST':
+      handleFetchRequest(message.data);
+      break;
   }
 });
+
+/**
+ * Handle generic fetch request via background
+ */
+async function handleFetchRequest(data) {
+  const { requestId, url } = data;
+  console.log('[EdgeAI Content] 🌐 Fetch request:', url);
+
+  chrome.runtime.sendMessage({
+    type: 'FETCH_JSON',
+    url,
+    requestId
+  }, (response) => {
+    if (chrome.runtime.lastError) {
+      window.postMessage({
+        source: 'edgeai-extension',
+        type: 'FETCH_ERROR',
+        data: { requestId, error: chrome.runtime.lastError.message }
+      }, '*');
+      return;
+    }
+
+    if (response && response.success) {
+      window.postMessage({
+        source: 'edgeai-extension',
+        type: 'FETCH_RESPONSE',
+        data: { requestId, results: response.data }
+      }, '*');
+    } else {
+      window.postMessage({
+        source: 'edgeai-extension',
+        type: 'FETCH_ERROR',
+        data: { requestId, error: response?.error || 'Fetch failed' }
+      }, '*');
+    }
+  });
+}
 
 /**
  * Handle PING from webapp

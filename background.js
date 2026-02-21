@@ -27,6 +27,11 @@ chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => 
     handleExtractionRequest(request.urls, request.searchId).then(sendResponse);
     return true;
   }
+
+  if (request.type === 'FETCH_JSON') {
+    handleFetchJson(request.url).then(sendResponse);
+    return true;
+  }
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -45,11 +50,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.type === 'EXTRACT_URLS') {
     handleExtractionRequest(request.urls, request.requestId).then(sendResponse);
     return true;
+  } else if (request.type === 'FETCH_JSON') {
+    handleFetchJson(request.url).then(sendResponse);
+    return true;
   } else if (request.type === 'CHECK_UPDATES_MANUAL') {
     checkForUpdates().then(found => sendResponse({ updateFound: found }));
     return true;
   }
 });
+
+/**
+ * Handle generic JSON fetch
+ */
+async function handleFetchJson(url) {
+  try {
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
 
 /**
  * Search only (no extraction)
