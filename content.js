@@ -94,6 +94,16 @@ window.addEventListener('message', async (event) => {
     case 'FETCH_REQUEST':
       handleFetchRequest(message.data);
       break;
+
+    case 'OPENAI_API_RESPONSE':
+    case 'OPENAI_API_STREAM_CHUNK':
+    case 'OPENAI_API_ERROR':
+      // Forward responses from webapp to background script
+      chrome.runtime.sendMessage({
+        type: message.type,
+        data: message.data
+      });
+      break;
   }
 });
 
@@ -101,12 +111,13 @@ window.addEventListener('message', async (event) => {
  * Handle generic fetch request via background
  */
 async function handleFetchRequest(data) {
-  const { requestId, url } = data;
-  console.log('[EdgeAI Content] 🌐 Fetch request:', url);
+  const { requestId, url, options } = data;
+  console.log('[EdgeAI Content] 🌐 Fetch proxy request:', url);
 
   chrome.runtime.sendMessage({
     type: 'FETCH_JSON',
     url,
+    options,
     requestId
   }, (response) => {
     if (chrome.runtime.lastError) {
@@ -595,6 +606,20 @@ if (!isWebApp) {
 
 // Listen for manual extraction requests and permission mode changes
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === 'OPENAI_API_REQUEST') {
+    // Forward OpenAI API request from background to webapp
+    window.postMessage({
+      source: 'edgeai-extension',
+      type: 'OPENAI_API_REQUEST',
+      data: {
+        requestId: request.requestId,
+        payload: request.payload,
+        apiKey: request.apiKey
+      }
+    }, '*');
+    return false; // Handled asynchronously via message listener above
+  }
+
   if (request.type === 'EXTRACT_NOW') {
     const extracted = extractPageContent();
     sendResponse(extracted);

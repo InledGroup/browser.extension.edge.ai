@@ -261,6 +261,29 @@
 
   <div class="section">
     <div class="section-title">
+      <span>📡</span>
+      <span data-i18n="apiStatusTitle">Servicios de Red</span>
+    </div>
+    <div class="status-group" style="display: flex; flex-direction: column; gap: 8px;">
+      <div class="status" style="justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div id="inboundDot" class="status-dot" style="background: #888; box-shadow: none; animation: none;"></div>
+          <span data-i18n="inboundApi">Exponiendo API</span>
+        </div>
+        <span id="inboundCount" style="font-size: 10px; opacity: 0.6;">0 reqs</span>
+      </div>
+      <div class="status" style="justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div id="outboundDot" class="status-dot" style="background: #888; box-shadow: none; animation: none;"></div>
+          <span data-i18n="outboundApi">Consumiendo API</span>
+        </div>
+        <span id="outboundCount" style="font-size: 10px; opacity: 0.6;">0 reqs</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">
       <span>🔐</span>
       <span data-i18n="permissionsTitle">Modo de Permisos</span>
     </div>

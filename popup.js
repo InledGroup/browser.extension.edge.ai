@@ -18,7 +18,10 @@ const translations = {
     updateFound: "Update found!",
     updateError: "Failed to check",
     updateAvailableText: "New patch detected:",
-    downloadPatch: "Download Patch"
+    downloadPatch: "Download Patch",
+    apiStatusTitle: "Network Services",
+    inboundApi: "Exposing API (Server)",
+    outboundApi: "Consuming API (Client)"
   },
   es: {
     subtitle: "Extensión de Navegador",
@@ -37,7 +40,10 @@ const translations = {
     updateFound: "¡Actualización encontrada!",
     updateError: "Error al buscar",
     updateAvailableText: "Nuevo parche detectado:",
-    downloadPatch: "Descargar Parche"
+    downloadPatch: "Descargar Parche",
+    apiStatusTitle: "Servicios de Red",
+    inboundApi: "Exponiendo API (Servidor)",
+    outboundApi: "Consumiendo API (Cliente)"
   }
 };
 
@@ -88,8 +94,41 @@ function showDownloadButton(updateData) {
   }
 }
 
+// Helper to update API status
+function updateApiStats() {
+  chrome.runtime.sendMessage({ type: 'GET_API_STATS' }, (stats) => {
+    if (!stats) return;
+
+    const inboundDot = document.getElementById('inboundDot');
+    const outboundDot = document.getElementById('outboundDot');
+    const inboundCount = document.getElementById('inboundCount');
+    const outboundCount = document.getElementById('outboundCount');
+
+    if (inboundDot) {
+      const active = stats.inbound.active || (Date.now() - stats.inbound.lastUsed < 3000);
+      inboundDot.style.background = active ? '#28e518' : '#888';
+      inboundDot.style.boxShadow = active ? '0 0 8px rgba(40, 229, 24, 0.6)' : 'none';
+      inboundDot.style.animation = active ? 'pulse 2s infinite' : 'none';
+    }
+
+    if (outboundDot) {
+      const active = stats.outbound.active || (Date.now() - stats.outbound.lastUsed < 3000);
+      outboundDot.style.background = active ? '#28e518' : '#888';
+      outboundDot.style.boxShadow = active ? '0 0 8px rgba(40, 229, 24, 0.6)' : 'none';
+      outboundDot.style.animation = active ? 'pulse 2s infinite' : 'none';
+    }
+
+    if (inboundCount) inboundCount.textContent = `${stats.inbound.totalRequests} reqs`;
+    if (outboundCount) outboundCount.textContent = `${stats.outbound.totalRequests} reqs`;
+  });
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+  // Update stats immediately and every second
+  updateApiStats();
+  setInterval(updateApiStats, 1000);
+
   // Load saved permission mode
   chrome.storage.local.get(['permissionMode', 'language', 'pendingUpdate'], (result) => {
     // Permission Mode
